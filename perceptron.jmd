@@ -1,0 +1,152 @@
+---
+title : Perceptron
+author : Gil Miranda
+date : 27 de Dezembro de 2020
+---
+
+# Perceptron
+
+Perceptrons tomam várias entradas e produzem uma saída binária, podem ser vistos como uma função
+$\begin{align} \underset{\vec{X} \mapsto \{0,1\}}{f: \mathbb{R}^n \to \mathbb{N}}\end{align}$
+São `funções de limiar (threshold functions)`, pois dado um limiar $k$, todos os valores acima
+terão o mesmo output binário, enquanto todos os valores abaixo terão o outro output binário, o Perceptron é definido:
+$\begin{align}
+f(\vec{X}) = \begin{cases}0, \, \sum_j w_jx_j \leq k\\
+1, \, \sum_j w_jx_j > k
+\end{cases}
+\end{align}$
+Onde $\vec{w} = (w_1, \dots, w_n)$ é o vetor de pesos, se definirmos $\theta = -k$, podemos reescrever
+$\begin{align}
+f(\vec{X}) = \begin{cases}0, \, \vec{w}\cdot \vec{X} + \theta \leq 0\\
+1, \, \vec{w}\cdot \vec{X} + \theta  > 0
+\end{cases}
+\end{align}$
+
+## Perceptrons como portas lógicas
+Portas lógicas, funções como `AND`, `OR`, `NAND` podem ser representadas por Perceptrons, para entender vamos
+codar um Perceptron para uma porta lógica `NAND`, primeiro vamos olhar para a tabela verdade de uma porta `NAND` com duas entradas
+
+| x₁ | x₂   | Saída
+| ------------- |-------------|-------------|
+| 0|0      | 1|
+| 0|1      | 1|
+| 1|0 | 1|
+| 1|1 | 0|
+
+```julia
+function NAND(x)
+  w = -ones(size(x))
+  b = 3/2
+  return if (w'x + b > 0) 1 else 0 end
+end;
+```
+Vamos ver manualmente o que nosso Perceptron faz, tomando $\vec{X} = (0,0)$
+$\begin{align}
+f(X) &= (-1\cdot 0)  + (-1\cdot 0) + \frac{3}{2}\\
+&= \frac{3}{2} > 0\\
+&∴ f(X) = 1
+\end{align}$
+Tomando $\vec{X} = (1,1)$
+$\begin{align}
+f(X) &= (-1\cdot 1) + (-1\cdot 1) + \frac{3}{2}\\
+&= -2 + \frac{3}{2} < 0\\
+&∴ f(X) = 0
+\end{align}$
+
+Podemos gerar a tabela verdade, vamos criar uma função para isso, pois poderemos
+ reutilizar mais tarde
+```julia
+using Printf
+function truth_table(f)
+    println("| x₁| x₂| Saída")
+    println("| - | - | - |")
+    for i in [0,1]
+      for j in [0,1]
+        @printf("| %d | %d | %d |\n", i,j,f([i,j]))
+      end
+    end
+end;
+```
+```julia
+truth_table(NAND)
+```
+Podemos agora implementar outras portas lógicas, para implementar a porta `AND`,
+ podemos apenas negar a porta `NAND`, isso se traduz trocando o sinal do Perceptron, pois:
+$f(X) > 0 \implies -f(X) < 0$
+
+```julia
+function AND(x)
+  w = ones(size(x))
+  b = -3/2
+  return if (w'x + b > 0) 1 else 0 end
+end;
+```
+
+```julia
+truth_table(AND)
+```
+Para a porta lógica `OR`
+```julia
+function OR(x)
+  w = ones(size(x))
+  b = -1/2
+  return if (w'x + b > 0) 1 else 0 end
+end;
+```
+```julia
+truth_table(OR)
+```
+
+Treinar o Perceptron, é aprender o vetor `w` e o bias `b`, há diversas maneiras
+de treinar um único Perceptron, vamos usar aqui um sistema linear, criemos um
+Perceptron que seja capaz de aprender
+
+```julia
+function perceptron(w⃗, b)
+  w() = w⃗
+  θ() = b
+  f(x) =  if ((w⃗'x + b < 0) || (isapprox(w⃗'x + b,0;atol=1e-8, rtol=0))) 0 else 1 end
+  () -> (w,θ,f)
+end;
+```
+
+```julia
+function train_perceptron(v)
+  m = size(v)[1]
+  n = Int(log(2,m)+1)
+  A = zeros(m,n)
+  A[:,n] = ones(m)
+  for i in 1:n-1
+    step = Int(m/2^i)
+    nᵢ = 1+step
+    while nᵢ <= m
+      A[nᵢ:nᵢ+step-1,i] = ones(step)
+      nᵢ += 2*step
+    end
+  end
+  w = A \ v
+  return perceptron(w[1:n-1], w[n])
+end;
+```
+Com esse ecossistema em mãos, podemos treinar as portas lógicas
+e exibir seus pesos, além da tabela verdade, vamos verificar
+
+```julia
+gate_NAND = train_perceptron([1,1,1,-1])
+println(gate_NAND.w())
+println(gate_NAND.θ())
+truth_table(gate_NAND.f)
+```
+
+```julia
+gate_XOR = train_perceptron([-1,1,1,-1])
+println(gate_XOR.w())
+println(gate_XOR.θ())
+truth_table(gate_XOR.f)
+```
+
+# Bibliografia
+
+1. [Goodfellow, Ian. Deep Learning](https://www.deeplearningbook.org/)
+1. [Rojas, Raul. Neural Networks - A Systematic Introduction](https://page.mi.fu-berlin.de/rojas/neural/)
+1. [Neural Networks and Deep Learning](http://neuralnetworksanddeeplearning.com/chap1.html)

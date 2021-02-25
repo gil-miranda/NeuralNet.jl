@@ -1,0 +1,207 @@
+---
+title : Backpropagation
+author : Gil Miranda
+date : 19 de Janeiro de 2021
+---
+
+# Um algoritmo para treinar a rede neural
+Queremos que o output da rede neural $NN(x)$ seja o mais próximo possível dos nossos dados, isto é, estamos aproximando
+uma função $f$ a qual não conhecemos explicitamente, mas apenas implicitamente atráves de alguns exemplos (dados de treino).
+Denotando $y(x)$ o output real de um dado de entrada $x$, e $a(x)$ o output da rede neural, aproximar as funções pode ser
+visto como manter a diferença quadrática entre elas pequena, daí a função custo, definida como
+$$
+C(w,b) = \frac{1}{2n}\sum_j || y(x_j) - a(w,b,x_j) ||^2_2
+$$
+
+### Relação entre função custo e o Backpropagation
+A função custo é uma função dos pesos ($w$) e vieses ($b$).
+
+Minimizar a função custo somada em todos os exemplos de treino é termos cada exemplo
+o mais próximo possível da saída da rede neural.
+Minimizamos a função custo atráves da técnica de `Stochastic Gradient Descent`
+(Gradiente descendente estocástico), que consiste em seguir um "caminho" pela função custo
+para o seu minimo global, ou um bom minímo local.
+Calcular o Gradiente de $C(w,b)$ dado por $\nabla C(w,b) = (\frac{\partial C}{\partial w}, \frac{\partial C}{\partial b})$ pode ser bem complicado, e em uma rede neural com muitas camadas e
+muitos dados de treino, fica ainda mais complicado e custoso, aqui que entra o algoritimo conhecido como
+`Backpropagation`, é o algoritmo que auxilia no cálculo do Gradiente da função custo de uma forma menos custosa.
+Então `Backpropagation` não faz necessariamente o 'aprendizado' da rede neural, isto é feito pelo algoritimo
+de `Gradient Descent`, `Backpropagation` é apenas a ferramenta pela qual calculamos este gradiente.
+
+### Stochastic Gradient Descent
+`Gradient Descent` é uma maneira de tomarmos um pequeno passo na direção de decrescer a função
+$C(w,b)$ o máximo possível. Seja $\theta$ o vetor de parâmetros da rede neural.
+Podemos pensar na função custo como $C(\theta)$, se tomarmos
+$$
+\Delta \theta = (\Delta \theta_1, \Delta \theta_2)
+$$
+Podemos escrever
+$$
+\Delta C \approx \nabla C\cdot \Delta \theta = \frac{\partial C}{\partial \theta_1}\Delta \theta_1 + \frac{\partial C}{\partial \theta_2}\Delta \theta_2
+$$
+Tomando $\Delta \theta = -\eta \nabla C$, $\eta > 0$, temos
+$$
+\Delta C \approx -\eta \nabla C \cdot \nabla C = -\eta ||\nabla C||^2 \leq 0
+$$
+Assim garantimos que estamos andando em uma direção não-crescente da função custo, com uma esperança de atingir
+o minímo global.
+
+A ideia por trás do `Gradiente Descendente Estocástico` é a de tomar uma amostra
+menor do conjunto de dados para treino, tomando essa amostra de forma aleatória, com $m < n$
+podemos ter
+$$
+\frac{1}{m}\sum_{j=1}^m C_{X_j} \approx \frac{1}{n}\sum_{x} C_x = \nabla C
+$$
+---
+# Calculando derivadas, o algoritmo de Backpropagation
+Vamos olhar um diagrama de como funciona o calculo da derivada de uma composição
+de funções utilizando `Backpropagation`
+
+
+![Feedforward](feedforward.png)
+
+Figura 1. Passo do `Feedforward`
+
+![Backpropagation](backprop.png)
+
+Figura 2. Passo do `Backpropagation`
+
+Figuras retiradas de `(2) Rojas, Raul. Neural Networks`
+## Backpropagation em ação
+Vamos introduzir uma notação para incorporar as camadas da rede neural nas
+equações, seja $w^l_{jk}$ o peso que vai do neuron $k$ da camada $l-1$ para
+o neuron $j$ na camada $l$, $w^l$ é a matriz de pesos da camada $l$.
+Da mesma maneira, $b^l_j$ é o vies do neuron $j$ na camada $l$, e $b^l$ todos
+os vieses da camada $l$.
+$a^l_j$ é a ativação, output da função $\sigma$ no neuron $j$ na camada $l$, $a^l$
+é o vetor de ativações da camada $l$ e $a^L$ é o output final da rede neural.
+$$
+a^l_j = \sigma\left(\sum_k w^l_{jk} a^{l-1}_k + b^l_j\right)
+$$
+
+Para o cálculo do gradiente, precisamos calcular as quantias $\frac{\partial C}{\partial w^l_{jk}}$
+ e $\frac{\partial C}{\partial b^l_j}$, definindo o erro no neuron $j$ na camada $l$ como
+$$
+\delta_j^l := \frac{\partial C}{\partial z_j^l}
+$$
+Onde $z^l_j = \sum_k w^l_{jk} a^{l-1}_k + b^l_j$.
+Com backpropagation conseguiremos calcular este erro e relacionar às derivadas que
+ queremos encontrar, vamos olhar como calcula-las
+#### Erro na camada de saída
+O erro na camada de saída da rede neural é dado calculando $\delta^L_j$ pela definição acima
+$$
+\begin{align*}
+\delta_j^L &= \frac{\partial C}{\partial z^L_j}\\
+&= \sum_k \frac{\partial C}{\partial a^L_k} \frac{\partial a^L_k}{\partial z^L_j}\\
+&= \frac{\partial C}{\partial a^L_j} \frac{\partial a^L_j}{\partial z^L_j}\\
+\therefore \, \delta_j^L &= \frac{\partial C}{\partial a^L_j} \sigma'(z^L_j)
+\end{align*}
+$$
+O somatório na segunda linha desaparece pois a derivada $\frac{\partial a^L_k}{\partial z^L_j}$ só é
+não nula quando $k = j$
+
+Podemos reescrever a equação de forma matricial utilizando multiplicação usual de matrizes
+$$
+\begin{align}
+\delta^L = \Sigma'(z^L)\nabla_a C
+\end{align}
+$$
+onde $\Sigma'(z^L)$ é uma matriz diagonal com as entradas sendo $\sigma'(z^L_j)$
+Ou também com um `produto de Hadamard`
+$$
+\delta^L = \nabla_a C \odot \sigma'(z^L)
+$$
+
+
+#### Erro na camada $l$ em função do erro na camada $l+1$
+Vamos ver como calcular o erro em uma camada qualquer da rede neural, para isso escreveremos o erro em função
+do erro da camada a frente da camada de interesse.
+$$
+\begin{align*}
+\delta_j^l &= \frac{\partial C}{\partial z^l_j}\\
+&= \sum_k \frac{\partial C}{\partial z^{l+1}_k} \frac{\partial z^{l+1}_k}{\partial z^l_j}\\
+&= \sum_k \frac{\partial z^{l+1}}{\partial z_j^l} \delta_k^{l+1}\\
+\therefore \delta_j^l &= \sum_k w^{l+1}_{kj}\delta^{l+1}_k\sigma'(z^l_j)
+\end{align*}
+$$
+A passagem da segunda para a terceira linha apenas aplicamos a definição de $\delta^{l+1}_j = \partial C/\partial z^{l+1}_j$
+
+Da terceira para a quarta linha a justificativa segue nas contas abaixo
+$$
+\begin{align*}
+z^{l+1}_k &= \sum_j w^{l+1}_{kj}\sigma(z^l) + b^{l+1}_k\\
+\therefore \frac{\partial z^{l+1}_k}{z^{1}_k} &= w^{l+1}_{kj} \sigma'(z^l_j)
+\end{align*}
+$$
+
+Podemos reescrever de forma matricial com o produto usual
+$$
+\begin{align}
+\delta^l = \Sigma'(z^l)(w^{l+1})^T\delta^{l+1}
+\end{align}
+$$
+Ou com produto de Hadamard
+$$
+\delta^l = ((w^{l+1})^T\delta^{l+1})\odot \sigma'(z^l)
+$$
+
+Com essas duas equações sabemos calcular o erro em qualquer camada $l$ da rede neural dado o erro da camada $l+1$,
+e sabemos calcular o erro na camada de saída, portanto conseguimos calcular todos de modo iterativo para trás.
+Falta agora relacionar os erros $\delta$ com as quantias de interesse que são as derivadas parciais da função custo em relação aos parâmetros da rede.
+
+#### Derivada da função custo em relação aos vieses
+Queremos uma expressão que relacione $\partial C/\partial b^l$ com $\delta^l$, vamos então aplicar a regra da cadeia na definição de $\delta^l$
+
+$$
+\begin{align*}
+\delta^l_j &= \sum_k \frac{\partial C}{\partial b^l_k}\frac{\partial b^l_k}{\partial z^l_j}\\
+&= \frac{\partial C}{\partial b^l_j}\frac{\partial b^l_j}{\partial z^l_j}\\
+&\text{Usando a definição de $z^l_j$ e derivando}\\
+z^l_j &= \sum_k w^l_{kj}a_k^{l-1} + b^l_j\\
+b^l_j &= z^l_j -  \sum_k w^l_{kj}a_k^{l-1}\\
+\frac{\partial b^l_j}{\partial z^l_j} &= 1\\
+\end{align*}
+$$
+$$
+\begin{align}
+\therefore \, \frac{\partial C}{\partial b^l_j} = \delta^l_j
+\end{align}
+$$
+Desta forma já temos calculado uma das derivadas de interesse.
+
+#### Derivada da função custo em relação aos pesos
+Agora queremos uma expressão para $\partial C/\partial w_{jk}^l$
+$$
+\begin{align*}
+\frac{\partial C}{\partial w^l_{jk}} &= \frac{\partial C}{\partial z^l_j} \frac{\partial z^l_j}{\partial w^l_{jk}}\\
+&= \delta^l_j \frac{\partial z^l_j}{\partial w^l_{jk}}\\
+&= \delta^l_j a^{l-1}_k\\
+\end{align*}
+$$
+$$
+\begin{align}
+\therefore \, \frac{\partial C}{\partial w^l_{jk}} =  a^{l-1}_k\delta^l_j
+\end{align}
+$$
+Com isso estamos prontos para calcular todas as derivadas de interesse para o `Stochastic Gradient Descent` utilizando
+`Backpropagation`.
+### Resumo do algoritmo para treinamento de uma rede neural
+1. Enviar o dado de entrada pela rede atráves de Feedforward
+1. Backpropagation na camada de saída
+    - Utilizando a equação $(1)$, calculamos o erro na saída da rede neural
+1. Backpropagation nas camadas ocultas
+    - Utilizando a equação $(2)$, calculamos o erro em cada camada e utilizando as equações $(3), (4)$, calculamos as derivadas parciais da função custo em relação aos parâmetros
+1. Atualizar os pesos e vieses da rede
+    - Utilizando o gradiente calculado no passo anterior, damos um passo na direção de um minímo da função custo, atualizando os pesos e vieses.
+1. O algoritmo termina a execução quando atingimos um valor suficientemente pequeno da função custo $C(w,b)$
+
+O algoritmo quando implementado numericamente, utiliza o `Produto de Hadamard` nas equações $(1), (2)$ ao
+invés do produto usual de matrizes pois é menos custoso computacionalmente
+
+---
+
+### Implementando do zero uma rede neural em Julia
+
+# Bibliografia
+1. [Goodfellow, Ian  (2016). Deep Learning, MIT Press](https://www.deeplearningbook.org/)
+1. [Rojas, Raul (1996). Neural Networks - A Systematic Introduction, Springer](https://page.mi.fu-berlin.de/rojas/neural/)
+1. [Michael A. Nielsen (2015), Neural Networks and Deep Learning, Determination Press](http://neuralnetworksanddeeplearning.com)
