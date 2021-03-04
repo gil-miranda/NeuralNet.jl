@@ -1,4 +1,4 @@
-using MLDatasets: MNIST
+using MLDatasets: FashionMNIST
 using Plots
 using Flux: onehotbatch, onecold, onehot
 using Random
@@ -6,13 +6,14 @@ include("src/NeuralNet.jl")
 
 ### Preparando dados
 
-xtrain, ytrain = MNIST.traindata();
-xtest, ytest = MNIST.testdata();
+
+xtrain, ytrain = FashionMNIST.traindata();
+xtest, ytest = FashionMNIST.testdata();
+
 
 ytrain_OneHot = onehotbatch(ytrain,0:9);
 ytest_OneHot = onehotbatch(ytest,0:9);
 
-Gray.(xtrain[:,:,1])
 
 xtrain_vec = zeros(28*28,60000)
 xtest_vec = zeros(28*28,10000)
@@ -28,7 +29,7 @@ end
 
 nn = NeuralNet.NeuralNetwork([28*28,30,10],"sigmoid");
 
-train_data = NeuralNet.train!(nn, xtrain_vec, ytrain_OneHot, batch_size=10, epochs=30, η=3.0)
+train_data = NeuralNet.train!(nn, xtrain_vec, ytrain_OneHot, batch_size=10, epochs=30, η=2.0)
 # train_data = NeuralNet.train!(nn, xtrain_vec, ytrain_OneHot, batch_size=10, epochs=30, η=3.0)
 
 function getPlot_accuracy(train_data)
