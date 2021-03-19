@@ -7,5 +7,6 @@ module NeuralNet
     include("neuralactivations.jl")
     include("neuralplots.jl")
     include("models.jl")
+    include("costfunctions.jl")
 
 end

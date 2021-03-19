@@ -28,15 +28,17 @@ end
 
 nn = NeuralNet.NeuralNetwork([28*28,30,10],"sigmoid");
 
+
+
 train_data = NeuralNet.train!(nn, xtrain_vec, ytrain_OneHot, batch_size=10, epochs=30, η=3.0)
 # train_data = NeuralNet.train!(nn, xtrain_vec, ytrain_OneHot, batch_size=10, epochs=30, η=3.0)
 
 function getPlot_accuracy(train_data)
-    the_plot = plot(train_data.accuracy,
+    the_plot = plot(train_data.accuracy*100,
              label="Accuracy",
              xlabel="Epochs",
              ylabel="Accuracy as %",
-             title="Development of accuracy at each iteration");
+             title="Development of accuracy at each iteration for training set");
     return the_plot
 end
 
@@ -46,7 +48,7 @@ function getPlot_cost(train_data)
              xlabel="Epochs",
              ylabel="Cost",
              color="red",
-             title="Development of cost at each iteration");
+             title="Development of cost at each iteration for training set");
     return the_plot
 end
 
@@ -65,3 +67,4 @@ for i in 1:10000
     end
 end
 acc /= 10000
+## \approx 94.98%

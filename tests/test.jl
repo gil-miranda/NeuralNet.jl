@@ -3,7 +3,7 @@ include("src/NeuralNet.jl")
 model_1 = NeuralNet.model_1(100,30);
 
 nn = NeuralNet.NeuralNetwork([2,1]);
-train_data = NeuralNet.train!(nn, model_1.xtrain, model_1.ytrain, batch_size = 2, epochs = 30);
+train_data = NeuralNet.train!(nn, model_1.xtrain, model_1.ytrain, batch_size = 2, epochs = 30, cost_function = NeuralNet.loss().mse);
 
 
 ### Plotting

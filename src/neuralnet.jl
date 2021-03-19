@@ -9,6 +9,7 @@ __status__ = "Production
 """
 
 include("neuralactivations.jl")
+include("costfunctions.jl")
 
 mutable struct NeuralNetwork
     """
@@ -169,9 +170,9 @@ function forward_activation(A_pre, W, b, func = "sigmoid")
     return A, Z
 end
 
-function loss(Ŷ, Y)
-    return 1/length(Y) * sum(abs2, Y .- Ŷ)
-end
+# function loss(Ŷ, Y)
+#     return 1/length(Y) * sum(abs2, Y .- Ŷ)
+# end
 
 function d_activation(z, actv)
     """
@@ -185,7 +186,7 @@ function d_activation(z, actv)
        deriv: Derivative of activation function ϕ applied on z with respect to z
     """
 
-    @assert(func ∈ ACTV_FUNCS, "Please, use a valid activation function from $ACTV_FUNCS")
+    @assert(actv ∈ ACTV_FUNCS, "Please, use a valid activation function from $ACTV_FUNCS")
 
     if actv == "σ" || actv == "sigmoid"
         deriv = dσ(z)
@@ -218,7 +219,7 @@ function GradDescent!(nn::NeuralNetwork, grads, η, batch_size = 1)
     end
 end
 
-function backprop(nn::NeuralNetwork, X, Y)
+function backprop(nn::NeuralNetwork, X, Y, cost_function = loss().mse)
     """
     Backpropagation Algorithm.
     Reverse mode of Automatic Differentiation for Neural Networks.
@@ -244,11 +245,7 @@ function backprop(nn::NeuralNetwork, X, Y)
         push!(z_cache, z)
         push!(activation_cache, activation)
     end
-    if length(size(Y)) > 1
-        delta = (2/size(Y)[2] * (activation_cache[end] - Y)) .* d_activation(z_cache[end], nn.ϕ["ϕ_$L"])
-    else
-        delta = (2/size(Y)[1] * (activation_cache[end] - Y)) .* d_activation(z_cache[end], nn.ϕ["ϕ_$L"])
-    end
+        delta = cost_function(activation_cache[end], Y, true) .* d_activation(z_cache[end], nn.ϕ["ϕ_$L"])
 
     grad["b_$L"] = sum(delta,dims=2)
     grad["W_$L"] = delta*activation_cache[end-1]'
@@ -261,10 +258,9 @@ function backprop(nn::NeuralNetwork, X, Y)
     return grad
 end
 
-function train!(nn::NeuralNetwork, X, Y; η = 0.1, epochs = 100, verbose = true, batch_size = 2)
+function train!(nn::NeuralNetwork, X, Y; η = 0.1, epochs = 100, verbose = true, batch_size = 2, cost_function = loss().mse)
     """
     Function that executes the training for the Neural Network
-    
     """
     N = size(Y)[2]
 
@@ -285,12 +281,12 @@ function train!(nn::NeuralNetwork, X, Y; η = 0.1, epochs = 100, verbose = true,
         end
         for i in batch_index
             grads = []
-            grads = backprop(nn, xrandom[:,i[1]:i[2]], yrandom[:,i[1]:i[2]])
+            grads = backprop(nn, xrandom[:,i[1]:i[2]], yrandom[:,i[1]:i[2]], cost_function)
             ## Fazer a media
             GradDescent!(nn, grads, η, batch_size)
         end
 
-        cost = loss(predict(nn,xrandom), yrandom)
+        cost = cost_function(predict(nn,xrandom), yrandom, false)
         acc = check_accuracy(nn, xrandom, yrandom)
 
         push!(costs, cost)
